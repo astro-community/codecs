@@ -12,7 +12,7 @@ npm install @astropub/codecs
 import * as fs from 'node:fs/promises'
 import * as codecs from '@astropub/codecs'
 
-/** Decoded JPG. */
+// decode the JPG image
 const image = await codecs.jpg.decode(
   await fs.readFile(
     new URL('./kitten.jpg', import.meta.url)
@@ -26,7 +26,21 @@ image.height // Height of the decoded JPG
 // WebP encode the image
 await fs.writeFile(
   new URL('./kitten.webp', import.meta.url),
-  await codecs.webp.encode(image, image.width, image.height)
+  await codecs.webp.encode(image.data, image.width, image.height)
+)
+
+// resize the image
+const resized = await codecs.resize(image.data, {
+  naturalWidth: image.width,
+  naturalHeight: image.height,
+  width: image.width / 2,
+  height: image.height / 2,
+})
+
+// WebP encode the resized image
+await fs.writeFile(
+  new URL('./kitten@1x.webp', import.meta.url),
+  await codecs.webp.encode(resized, image.width / 2, image.height / 2)
 )
 ```
 
@@ -39,7 +53,7 @@ import * as jxl from '@astropub/codecs/jxl'
 import * as png from '@astropub/codecs/png'
 import * as webp from '@astropub/codecs/webp'
 import * as wp2 from '@astropub/codecs/wp2'
-import * as resize from '@astropub/codecs/resize'
+import { resize } from '@astropub/codecs/resize'
 ```
 
 ## License

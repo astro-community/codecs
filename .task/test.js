@@ -7,7 +7,6 @@ import * as jxl from '@astropub/codecs/jxl'
 import * as png from '@astropub/codecs/png'
 import * as webp from '@astropub/codecs/webp'
 import * as wp2 from '@astropub/codecs/wp2'
-import * as resize from '@astropub/codecs/resize'
 
 const cwd = URL.from(import.meta.url).goto('./')
 
@@ -23,7 +22,7 @@ console.log('Using the JPG:')
 
 	await fs.writeFile(
 		cwd.goto('../test/test-resized.jpg'),
-		await jpg.encode(await resize.resize(image.data, {
+		await jpg.encode(await codecs.resize(image.data, {
 			naturalWidth: image.width,
 			naturalHeight: image.height,
 			width: image.width / 2,
@@ -65,7 +64,7 @@ console.log('Using the WEBP:')
 
 	await fs.writeFile(
 		cwd.goto('../test/test-resized.webp'),
-		await webp.encode(await resize.resize(image.data, {
+		await webp.encode(await codecs.resize(image.data, {
 			naturalWidth: image.width,
 			naturalHeight: image.height,
 			width: image.width / 2,
@@ -107,7 +106,7 @@ console.log('Using the PNG:')
 
 	await fs.writeFile(
 		cwd.goto('../test/test-resized.png'),
-		await png.encode(await resize.resize(image.data, {
+		await png.encode(await codecs.resize(image.data, {
 			naturalWidth: image.width,
 			naturalHeight: image.height,
 			width: image.width / 2,
