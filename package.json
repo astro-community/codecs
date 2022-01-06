@@ -1,0 +1,77 @@
+{
+  "name": "@astropub/codecs",
+  "description": "Codecs for NodeJS",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/mod.js",
+    "./avif": "./dist/avif/thread.js",
+    "./jpg": "./dist/jpg/thread.js",
+    "./jxl": "./dist/jxl/thread.js",
+    "./png": "./dist/png/thread.js",
+    "./resize": "./dist/resize/thread.js",
+    "./webp": "./dist/webp/thread.js",
+    "./wp2": "./dist/wp2/thread.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "avif",
+    "conversion",
+    "convert",
+    "converts",
+    "image",
+    "images",
+    "jpeg",
+    "jpg",
+    "jxl",
+    "png",
+    "resize",
+    "wasm",
+    "webp",
+    "wp2"
+  ],
+  "license": "(CC0-1.0 AND Apache-2.0 AND BSD-3-Clause)",
+  "repository": "astro-community/codecs",
+  "author": "Jonathan Neal <jonathantneal@hotmail.com>",
+  "bugs": "https://github.com/astro-community/codecs/issues",
+  "homepage": "https://github.com/astro-community/codecs#readme",
+  "scripts": {
+    "build": "node .task/build.js",
+    "release": "npm publish --access public",
+    "test": "node .task/test.js"
+  },
+  "devDependencies": {
+    "@astropub/webapi": "^0.10.1",
+    "acorn": "^8.7.0",
+    "acorn-class-fields": "^1.0.0",
+    "acorn-import-assertions": "^1.8.0",
+    "acorn-logical-assignment": "^0.1.4",
+    "acorn-loose": "^8.3.0",
+    "acorn-private-methods": "^1.0.0",
+    "adm-zip": "^0.5.9",
+    "astring": "^1.8.1"
+  },
+  "prettier": {
+    "endOfLine": "lf",
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "es5",
+    "useTabs": true,
+    "overrides": [
+      {
+        "files": [
+          ".stackblitzrc",
+          "*.json",
+          "*.md",
+          "*.yml"
+        ],
+        "options": {
+          "useTabs": false
+        }
+      }
+    ]
+  }
+}

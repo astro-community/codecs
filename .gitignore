@@ -1,0 +1,12 @@
+*.log*
+dist
+test/test-*
+node_modules
+package-lock.json
+yarn.lock
+
+.*
+!.editorconfig
+!.gitattributes
+!.gitignore
+!.task
