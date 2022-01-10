@@ -1,10 +1,10 @@
 {
   "name": "@astropub/codecs",
   "description": "Codecs for NodeJS",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "exports": {
-    ".": "./dist/mod.js",
+    ".": "./dist/codecs.js",
     "./avif": "./dist/avif/thread.js",
     "./jpg": "./dist/jpg/thread.js",
     "./jxl": "./dist/jxl/thread.js",

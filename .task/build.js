@@ -203,17 +203,27 @@ const build = async () => {
 		fs.writeFile(
 			cwd.goto(`../dist/png/codec.js`),
 			await fs.readFile(cwd.goto('templates/png.js'), 'utf-8')
-		),
+		)
+	)
+
+	const actions = []
+
+	actions.push(
 		fs.cp(
-			cwd.goto(`templates/mod.js`),
-			cwd.goto(`../dist/mod.js`)
+			cwd.goto(`src/`),
+			cwd.goto(`../dist/`),
+			{
+				force: true,
+				recursive: true,
+			}
 		)
 	)
 
 	await Promise.all(readFiles)
+	await Promise.all(actions)
 
-	await fs.rm(cwd.goto('.build'), { force: true, recursive: true })
-	await fs.rm(cwd.goto('.build.zip'), { force: true, recursive: true })
+	// await fs.rm(cwd.goto('.build'), { force: true, recursive: true })
+	// await fs.rm(cwd.goto('.build.zip'), { force: true, recursive: true })
 }
 
 setup().then(build)

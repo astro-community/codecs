@@ -13,34 +13,30 @@ import * as fs from 'node:fs/promises'
 import * as codecs from '@astropub/codecs'
 
 // decode the JPG image
-const image = await codecs.jpg.decode(
+const image = await codecs.load(
   await fs.readFile(
-    new URL('./kitten.jpg', import.meta.url)
+    './kitten.jpg'
   )
 )
 
-image.data // UUint8ClampedArray of the decoded JPG
+image.data // Uint8ClampedArray of the decoded JPG
 image.width // Width of the decoded JPG
 image.height // Height of the decoded JPG
 
-// WebP encode the image
-await fs.writeFile(
-  new URL('./kitten.webp', import.meta.url),
-  await codecs.webp.encode(image.data, image.width, image.height)
-)
-
-// resize the image
-const resized = await codecs.resize(image.data, {
-  naturalWidth: image.width,
-  naturalHeight: image.height,
-  width: image.width / 2,
-  height: image.height / 2,
+// encode as Avif/WebP, at 320, 640, 960
+const encodes = await image.encode({
+		sizes: [ 320, 640, 960 ],
+		types: [ 'image/avif', 'image/webp' ],
 })
 
-// WebP encode the resized image
-await fs.writeFile(
-  new URL('./kitten@1x.webp', import.meta.url),
-  await codecs.webp.encode(resized, image.width / 2, image.height / 2)
+// save various sizes and encodings
+await Promise.all(
+  encodes.map(encoding => encoding.then(
+    encoded => fs.writeFile(
+      `./kitten-${encoded.width}.${encoded.extension}`,
+      encoded.data
+    )
+  ))
 )
 ```
 

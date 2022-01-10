@@ -1,7 +1,0 @@
-export * as avif from '@astropub/codecs/avif'
-export * as jpg from '@astropub/codecs/jpg'
-export * as jxl from '@astropub/codecs/jxl'
-export * as png from '@astropub/codecs/png'
-export * as webp from '@astropub/codecs/webp'
-export * as wp2 from '@astropub/codecs/wp2'
-export { resize } from '@astropub/codecs/resize'

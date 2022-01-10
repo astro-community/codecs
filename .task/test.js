@@ -16,6 +16,23 @@ let image;
 console.log('Using the JPG:')
 
 {
+	const image = await codecs.load(
+		fs.readFile('test/test.jpg')
+	)
+
+	const encodes = await image.encode({
+		sizes: [ 320, 640, 960 ],
+		types: [ 'image/avif', 'image/webp' ],
+	})
+
+	await Promise.all(
+		encodes.map(encoding => encoding.then(
+			encoded => fs.writeFile(`test/test-of_jpg-${encoded.width}.${encoded.extension}`, encoded.data)
+		))
+	)
+}
+
+{
 	image = await codecs.jpg.decode(await fs.readFile(cwd.goto('../test/test.jpg')))
 
 	console.log('  resize JPG')
@@ -28,6 +45,13 @@ console.log('Using the JPG:')
 			width: image.width / 2,
 			height: image.height / 2,
 		}), image.width / 2, image.height / 2)
+	)
+
+	console.log('  blur JPG')
+
+	await fs.writeFile(
+		cwd.goto('../test/test-blurred.jpg'),
+		await jpg.encode(await codecs.blur(image.data, image.width, image.height, 30), image.width, image.height)
 	)
 
 	console.log('  encode AVIF from JPG')
@@ -55,88 +79,88 @@ console.log('Using the JPG:')
 	await fs.writeFile(cwd.goto('../test/test-from-jpg.wp2'), await wp2.encode(image.data, image.width, image.height))
 }
 
-console.log('Using the WEBP:')
+// console.log('Using the WEBP:')
 
-{
-	image = await codecs.webp.decode(await fs.readFile(cwd.goto('../test/test.webp')))
+// {
+// 	image = await codecs.webp.decode(await fs.readFile(cwd.goto('../test/test.webp')))
 
-	console.log('  resize WEBP')
+// 	console.log('  resize WEBP')
 
-	await fs.writeFile(
-		cwd.goto('../test/test-resized.webp'),
-		await webp.encode(await codecs.resize(image.data, {
-			naturalWidth: image.width,
-			naturalHeight: image.height,
-			width: image.width / 2,
-			height: image.height / 2,
-		}), image.width / 2, image.height / 2)
-	)
+// 	await fs.writeFile(
+// 		cwd.goto('../test/test-resized.webp'),
+// 		await webp.encode(await codecs.resize(image.data, {
+// 			naturalWidth: image.width,
+// 			naturalHeight: image.height,
+// 			width: image.width / 2,
+// 			height: image.height / 2,
+// 		}), image.width / 2, image.height / 2)
+// 	)
 
-	console.log('  encode AVIF from WEBP')
+// 	console.log('  encode AVIF from WEBP')
 
-	await fs.writeFile(cwd.goto('../test/test-from-webp.avif'), await avif.encode(image.data, image.width, image.height))
+// 	await fs.writeFile(cwd.goto('../test/test-from-webp.avif'), await avif.encode(image.data, image.width, image.height))
 
-	console.log('  encode JPG from WEBP')
+// 	console.log('  encode JPG from WEBP')
 
-	await fs.writeFile(cwd.goto('../test/test-from-webp.jpg'), await jpg.encode(image.data, image.width, image.height))
+// 	await fs.writeFile(cwd.goto('../test/test-from-webp.jpg'), await jpg.encode(image.data, image.width, image.height))
 
-	console.log('  encode JXL from WEBP')
+// 	console.log('  encode JXL from WEBP')
 
-	await fs.writeFile(cwd.goto('../test/test-from-webp.jxl'), await jxl.encode(image.data, image.width, image.height))
+// 	await fs.writeFile(cwd.goto('../test/test-from-webp.jxl'), await jxl.encode(image.data, image.width, image.height))
 
-	console.log('  encode PNG from WEBP')
+// 	console.log('  encode PNG from WEBP')
 
-	await fs.writeFile(cwd.goto('../test/test-from-webp.png'), await png.encode(image.data, image.width, image.height))
+// 	await fs.writeFile(cwd.goto('../test/test-from-webp.png'), await png.encode(image.data, image.width, image.height))
 
-	console.log('  encode WEBP from WEBP')
+// 	console.log('  encode WEBP from WEBP')
 
-	await fs.writeFile(cwd.goto('../test/test-from-webp.webp'), await webp.encode(image.data, image.width, image.height))
+// 	await fs.writeFile(cwd.goto('../test/test-from-webp.webp'), await webp.encode(image.data, image.width, image.height))
 
-	console.log('  encode WP2 from WEBP')
+// 	console.log('  encode WP2 from WEBP')
 
-	await fs.writeFile(cwd.goto('../test/test-from-webp.wp2'), await wp2.encode(image.data, image.width, image.height))
-}
+// 	await fs.writeFile(cwd.goto('../test/test-from-webp.wp2'), await wp2.encode(image.data, image.width, image.height))
+// }
 
-console.log('Using the PNG:')
+// console.log('Using the PNG:')
 
-{
-	image = await codecs.png.decode(await fs.readFile(cwd.goto('../test/test.png')))
+// {
+// 	image = await codecs.png.decode(await fs.readFile(cwd.goto('../test/test.png')))
 
-	console.log('  resize PNG')
+// 	console.log('  resize PNG')
 
-	await fs.writeFile(
-		cwd.goto('../test/test-resized.png'),
-		await png.encode(await codecs.resize(image.data, {
-			naturalWidth: image.width,
-			naturalHeight: image.height,
-			width: image.width / 2,
-			height: image.height / 2,
-		}), image.width / 2, image.height / 2)
-	)
+// 	await fs.writeFile(
+// 		cwd.goto('../test/test-resized.png'),
+// 		await png.encode(await codecs.resize(image.data, {
+// 			naturalWidth: image.width,
+// 			naturalHeight: image.height,
+// 			width: image.width / 2,
+// 			height: image.height / 2,
+// 		}), image.width / 2, image.height / 2)
+// 	)
 
-	console.log('  encode AVIF from PNG')
+// 	console.log('  encode AVIF from PNG')
 
-	await fs.writeFile(cwd.goto('../test/test-from-png.avif'), await avif.encode(image.data, image.width, image.height))
+// 	await fs.writeFile(cwd.goto('../test/test-from-png.avif'), await avif.encode(image.data, image.width, image.height))
 
-	console.log('  encode JPG from PNG')
+// 	console.log('  encode JPG from PNG')
 
-	await fs.writeFile(cwd.goto('../test/test-from-png.jpg'), await jpg.encode(image.data, image.width, image.height))
+// 	await fs.writeFile(cwd.goto('../test/test-from-png.jpg'), await jpg.encode(image.data, image.width, image.height))
 
-	console.log('  encode JXL from PNG')
+// 	console.log('  encode JXL from PNG')
 
-	await fs.writeFile(cwd.goto('../test/test-from-png.jxl'), await jxl.encode(image.data, image.width, image.height))
+// 	await fs.writeFile(cwd.goto('../test/test-from-png.jxl'), await jxl.encode(image.data, image.width, image.height))
 
-	console.log('  encode PNG from PNG')
+// 	console.log('  encode PNG from PNG')
 
-	await fs.writeFile(cwd.goto('../test/test-from-png.png'), await png.encode(image.data, image.width, image.height))
+// 	await fs.writeFile(cwd.goto('../test/test-from-png.png'), await png.encode(image.data, image.width, image.height))
 
-	console.log('  encode WEBP from PNG')
+// 	console.log('  encode WEBP from PNG')
 
-	await fs.writeFile(cwd.goto('../test/test-from-png.webp'), await webp.encode(image.data, image.width, image.height))
+// 	await fs.writeFile(cwd.goto('../test/test-from-png.webp'), await webp.encode(image.data, image.width, image.height))
 
-	console.log('  encode WP2 from PNG')
+// 	console.log('  encode WP2 from PNG')
 
-	await fs.writeFile(cwd.goto('../test/test-from-png.wp2'), await wp2.encode(image.data, image.width, image.height))
-}
+// 	await fs.writeFile(cwd.goto('../test/test-from-png.wp2'), await wp2.encode(image.data, image.width, image.height))
+// }
 
 console.log('Done')
