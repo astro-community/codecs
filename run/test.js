@@ -103,10 +103,10 @@ console.log()
 	}
 }
 
-// for (const file of await fs.readdir('test/', { withFileTypes: true })) {
-// 	if (file.name.includes('-')) {
-// 		await fs.rm(`test/${file.name}`)
-// 	}
-// }
+for (const file of await fs.readdir('test/', { withFileTypes: true })) {
+	if (file.name.includes('-')) {
+		await fs.rm(`test/${file.name}`)
+	}
+}
 
 console.log('Done')

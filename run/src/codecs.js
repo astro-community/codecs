@@ -8,4 +8,4 @@ export * as blurhash from './blurhash/thread.js'
 
 export { blur } from './blur/thread.js'
 export { resize } from './resize/thread.js'
-export { getExtension, getType } from './type/type.js'
+export { getExtension, getMeasurements, getType } from './type/type.js'

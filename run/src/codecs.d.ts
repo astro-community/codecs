@@ -178,3 +178,6 @@ export declare const getExtension: (data: Uint8Array) => ExtensionType | ''
 
 /** Returns the content type associated with the given image. */
 export declare const getType: (data: Uint8Array) => ImageType | ''
+
+/** Returns the measurements associated with the given image. */
+export declare const getMeasurements: (data: Uint8Array) => { width: number, height: number } | null
