@@ -9,4 +9,3 @@ yarn.lock
 !.editorconfig
 !.gitattributes
 !.gitignore
-!.task

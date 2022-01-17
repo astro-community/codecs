@@ -15,15 +15,27 @@ export const toURL = (arg) => {
 /** @type {{ (arg: any): Uint8Array }} */
 export const toUint8Array = (arg) => {
 	switch (true) {
-		default: {
+		case arg !== Object(arg):
+		default:
 			arg = fs.readFileSync(toURL(arg)).buffer
-		}
-		case __object_isPrototypeOf(TypedArray.prototype, Object(arg).data): {
+
+		case __object_isPrototypeOf(TypedArray.prototype, Object(arg).data):
 			arg = arg.data || arg
-		}
-		case __object_isPrototypeOf(TypedArray.prototype, arg): {
+
+		case __object_isPrototypeOf(ArrayBuffer.prototype, arg):
 			return __object_isPrototypeOf(Uint8Array.prototype, arg) ? arg : new Uint8Array(arg)
-		}
+
+		case __object_isPrototypeOf(TypedArray.prototype, arg):
+			return __object_isPrototypeOf(Uint8Array.prototype, arg) ? arg : new Uint8Array(arg)
+			
+		case typeof source.arrayBuffer === 'function':
+			return toUint8Array(source.arrayBuffer())
+
+		case typeof source.then === 'function':
+			return source.then(toUint8Array)
+
+		case source.buffer:
+			return toUint8Array(source.buffer)
 	}
 }
 

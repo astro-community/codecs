@@ -1,17 +1,15 @@
 {
   "name": "@astropub/codecs",
   "description": "Codecs for NodeJS",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
+  "main": "./dist/codecs.js",
+  "types": "./dist/codecs.d.ts",
   "exports": {
-    ".": "./dist/codecs.js",
-    "./avif": "./dist/avif/thread.js",
-    "./jpg": "./dist/jpg/thread.js",
-    "./jxl": "./dist/jxl/thread.js",
-    "./png": "./dist/png/thread.js",
-    "./resize": "./dist/resize/thread.js",
-    "./webp": "./dist/webp/thread.js",
-    "./wp2": "./dist/wp2/thread.js"
+    ".": {
+      "import": "./dist/codecs.js",
+      "type": "./dist/codecs.d.ts"
+    }
   },
   "files": [
     "dist"
@@ -38,12 +36,13 @@
   "bugs": "https://github.com/astro-community/codecs/issues",
   "homepage": "https://github.com/astro-community/codecs#readme",
   "scripts": {
-    "build": "node .task/build.js",
+    "build": "node run/build.js",
     "release": "npm publish --access public",
-    "test": "node .task/test.js"
+    "test": "node run/test.js"
   },
   "devDependencies": {
     "@astropub/webapi": "^0.10.1",
+    "@types/node": "^17.0.8",
     "acorn": "^8.7.0",
     "acorn-class-fields": "^1.0.0",
     "acorn-import-assertions": "^1.8.0",
@@ -73,5 +72,8 @@
         }
       }
     ]
+  },
+  "dependencies": {
+    "blurhash": "^1.1.4"
   }
 }

@@ -54,6 +54,7 @@ const build = async () => {
 
 	await Promise.all(createDirs)
 
+	/** @type {Promise<void>[]} */
 	const copyThreads = []
 
 	for (let codec of ['avif', 'jpg', 'jxl', 'png', 'webp', 'wp2']) {
@@ -65,7 +66,7 @@ const build = async () => {
 		)
 	}
 
-	await copyThreads
+	await Promise.all(copyThreads)
 
 	const copyFiles = []
 
@@ -221,6 +222,23 @@ const build = async () => {
 
 	await Promise.all(readFiles)
 	await Promise.all(actions)
+
+	const blurhash = cwd.goto('../node_modules/blurhash/dist/esm/')
+	const blurdest = cwd.goto('../dist/blurhash/')
+
+	for (const file of await fs.readdir(blurhash)) {
+		if (file.endsWith('.js') && file !== 'index.js') {
+			fs.writeFile(
+				blurdest.goto(file),
+				await fs.readFile(
+					blurhash.goto(file),
+					'utf-8'
+				).then(
+					code => code.replace(/^(import [^\n]+)";/mg, '$1.js";\n')
+				)
+			)
+		}
+	}
 
 	// await fs.rm(cwd.goto('.build'), { force: true, recursive: true })
 	// await fs.rm(cwd.goto('.build.zip'), { force: true, recursive: true })

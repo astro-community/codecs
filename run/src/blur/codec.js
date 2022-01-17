@@ -50,9 +50,11 @@ function switchXY(data, width, height, isClockwise) {
 	return newdata
 }
 
-function blur(data, width, height, radius) {
+function blur(image, options) {
+	const { radius } = Object(options)
+
 	/** Gaussian distribution σ. */
-	const blurRange = radius * 3
+	const blurRange = Number(radius * 3) || 0
 
 	/** Gaussian distribution coefficient. */
 	const guassParam = new Array()
@@ -62,6 +64,8 @@ function blur(data, width, height, radius) {
 		guassParam[i] = Math.exp(-i * i / (2 * radius * radius))
 	}
 
+	const { data, width, height } = image
+
 	// blur y
 	const dataToYX = switchXY(data, width, height, true)
 	const blur1of2 = blurX(dataToYX, width, height, blurRange, guassParam)
@@ -70,7 +74,7 @@ function blur(data, width, height, radius) {
 	const dataToXY = switchXY(blur1of2, width, height, false)
 	const blur2of2 = blurX(dataToXY, width, height, blurRange, guassParam)
 
-	return blur2of2
+	return { data: blur2of2, width, height }
 }
 
 export { blur }

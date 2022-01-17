@@ -1,0 +1,20 @@
+{
+  "files": [
+    "run/test.js"
+  ],
+  "include": [
+    "run/test.js"
+  ],
+  "compilerOptions": {
+    "allowJs": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "declaration": true,
+    "declarationDir": ".",
+    "strict": true,
+    "sourceMap": true,
+    "declarationMap": true
+  }
+}

@@ -1,8 +1,8 @@
 import * as thread from 'node:worker_threads'
 import * as codec from './codec.js'
 
-export const blur = (buffer, w, h, r) => new Promise((resolve, reject) => {
-	const worker = new thread.Worker(new URL(import.meta.url), { workerData: { type: 'blur', args: [ buffer, w, h, r ] } })
+export const blur = (image, options) => new Promise((resolve, reject) => {
+	const worker = new thread.Worker(new URL(import.meta.url), { workerData: { type: 'blur', args: [ image, options ] } })
 	const onfail = (code) => code === 0 || reject(new Error(`Encoding failed [ ${code} ]`))
 
 	worker.on('message', resolve).on('error', reject).on('exit', onfail)
@@ -11,9 +11,9 @@ export const blur = (buffer, w, h, r) => new Promise((resolve, reject) => {
 if (!thread.isMainThread) {
 	switch (thread.workerData.type) {
 		case 'blur': {
-			const [ data, w, h, r ] = thread.workerData.args
+			const [ image, options ] = thread.workerData.args
 
-			const buffer = codec.blur(data, w, h, r)
+			const buffer = codec.blur(image, options)
 
 			thread.parentPort.postMessage(buffer)
 
