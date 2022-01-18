@@ -3,10 +3,13 @@ import './lib/polyfill.js'
 import * as fs from 'node:fs/promises'
 import * as JS from './lib/JS.js'
 import AdmZip from 'adm-zip'
-import { build as buildPng } from './transforms/png.js'
-import { build as buildAll } from './transforms/all.js'
+import { build as buildCodec } from './transforms/codec.js'
+import { build as buildCodecPng } from './transforms/codec.png.js'
 
 const cwd = URL.from(import.meta.url).goto('./')
+
+// setup plugin sources
+// ========================================
 
 const exists = (/** @type {URL} */ url) => fs.stat(url).then(() => true, () => false)
 
@@ -26,6 +29,9 @@ const setup = () => exists(cwd.goto('.build/')).then(
 	)
 )
 
+// build plugin dist
+// ========================================
+
 const build = async () => {
 	const adjustedFileName = (file) => file === 'jpg_dec' ? 'mozjpeg_node_dec' : file.replace(/^jpg/, 'mozjpeg')
 	const adjustedDirName = (dir) => dir === 'jpg' ? 'mozjpeg' : dir
@@ -42,23 +48,97 @@ const build = async () => {
 		wp2: '244,255,111',
 	}
 
-	const createDirs = []
+	const transforms = {
+		avif: (data) => [
+			data,
+			`import { DecodedImage, EncodedImage } from '../transform/utils.js'`,
+			`import { getSize as rect } from '../transform/utils.avif.js'`,
+			`export { rect }`,
+			`export const ext = 'avif'`,
+			`export const type = 'image/avif'`,
+		].join('\n'),
+
+		gif: (data) => [
+			data,
+			`import { DecodedImage, EncodedImage } from '../transform/utils.js'`,
+			`export const rect = (data) => { const { width, height } = decode(data); return { width, height } }`,
+			`export const ext = 'gif'`,
+			`export const type = 'image/gif'`,
+		].join('\n'),
+
+		jpg: (data) => [
+			data,
+			`import { DecodedImage, EncodedImage } from '../transform/utils.js'`,
+			`import { getSize as rect } from '../transform/utils.jpg.js'`,
+			`export { rect }`,
+			`export const ext = 'jpg'`,
+			`export const type = 'image/jpeg'`,
+		].join('\n'),
+
+		jxl: (data) => [
+			data,
+			`import { DecodedImage, EncodedImage } from '../transform/utils.js'`,
+			`export const rect = (data) => { const { width, height } = decode(data); return { width, height } }`,
+			`export const ext = 'jxl'`,
+			`export const type = 'image/jxl'`,
+		].join('\n'),
+
+		png: (data) => [
+			data,
+			`import { DecodedImage, EncodedImage, getPngSize as rect } from '../transform/utils.js'`,
+			`export { rect }`,
+			`export const ext = 'png'`,
+			`export const type = 'image/png'`,
+		].join('\n'),
+
+		svg: (data) => [
+			data,
+			`import { DecodedImage, EncodedImage } from '../transform/utils.js'`,
+			`export const ext = 'svg'`,
+			`export const type = 'image/svg+xml'`,
+		].join('\n'),
+
+		webp: (data) => [
+			data,
+			`import { DecodedImage, EncodedImage, getWebpSize as rect } from '../transform/utils.js'`,
+			`export { rect }`,
+			`export const ext = 'webp'`,
+			`export const type = 'image/webp'`,
+		].join('\n'),
+
+		wp2: (data) => [
+			data,
+			`import { DecodedImage, EncodedImage } from '../transform/utils.js'`,
+			`export const rect = (data) => { const { width, height } = decode(data); return { width, height } }`,
+			`export const ext = 'wp2'`,
+			`export const type = 'image/webp2'`,
+		].join('\n'),
+	}
+
+	// create directories for each codec
+	// ========================================
+
+	/** @type {Promise<void>[]} */
+	const awaitDirs = []
 
 	await fs.rm(cwd.goto(`../dist/`), { force: true, recursive: true })
 
-	for (let codec of ['avif', 'jxl', 'jpg', 'png', 'webp', 'wp2', 'resize', 'rotate']) {
-		createDirs.push(
+	for (let codec of ['avif', 'jxl', 'jpg', 'png', 'webp', 'wp2', 'transform']) {
+		awaitDirs.push(
 			fs.mkdir(cwd.goto(`../dist/${codec}/`), { recursive: true })
 		)
 	}
 
-	await Promise.all(createDirs)
+	await Promise.all(awaitDirs)
+
+	// copy thread javascript into each codec
+	// ========================================
 
 	/** @type {Promise<void>[]} */
-	const copyThreads = []
+	const awaitThreadJs = []
 
 	for (let codec of ['avif', 'jpg', 'jxl', 'png', 'webp', 'wp2']) {
-		copyThreads.push(
+		awaitThreadJs.push(
 			fs.cp(
 				cwd.goto(`templates/thread.js`),
 				cwd.goto(`../dist/${codec}/thread.js`)
@@ -66,15 +146,21 @@ const build = async () => {
 		)
 	}
 
-	await Promise.all(copyThreads)
+	await Promise.all(awaitThreadJs)
 
-	const copyFiles = []
+	// copy codecs and options into each codec
+	// ========================================
 
-	const encodeOptions = {}
+	/** @type {Promise<void>[]} */
+	const awaitCodecSources = []
+
+	const encodeOptions = {
+		png: '{\n\tlevel: 2,\n}'
+	}
 
 	for (let codec of ['avif', 'jpg', 'jxl', 'webp', 'wp2']) {
 		for (let type of ['dec', 'enc']) {
-			copyFiles.push(
+			awaitCodecSources.push(
 				fs.cp(
 					cwd.goto(`.build/squoosh-dev/codecs/${adjustedDirName(codec)}/${type}/${adjustedFileName(`${codec}_${type}`)}.wasm`),
 					cwd.goto(`../dist/${codec}/${codec}-${type}.wasm`)
@@ -109,7 +195,10 @@ const build = async () => {
 		}
 	}
 
-	copyFiles.push(
+	// copy png codec and options into png codec
+	// ========================================
+
+	awaitCodecSources.push(
 		fs.cp(
 			cwd.goto(`.build/squoosh-dev/codecs/png/pkg/squoosh_png_bg.wasm`),
 			cwd.goto(`../dist/png/png-enc-dec.wasm`)
@@ -121,8 +210,8 @@ const build = async () => {
 			(data) => {
 				const program = JS.parse(data)
 
-				buildPng(program)
-				
+				buildCodecPng(program)
+
 				return fs.writeFile(
 					cwd.goto(`../dist/png/png-enc-dec.js`),
 					JS.stringify(program)
@@ -130,8 +219,27 @@ const build = async () => {
 			}
 		),
 		fs.cp(
+			cwd.goto(`.build/squoosh-dev/codecs/oxipng/pkg/squoosh_oxipng_bg.wasm`),
+			cwd.goto(`../dist/png/png-optimize.wasm`)
+		),
+		fs.readFile(
+			cwd.goto(`.build/squoosh-dev/codecs/oxipng/pkg/squoosh_oxipng.js`),
+			'utf-8'
+		).then(
+			(data) => {
+				const program = JS.parse(data)
+
+				buildCodecPng(program)
+
+				return fs.writeFile(
+					cwd.goto(`../dist/png/png-optimize.js`),
+					JS.stringify(program)
+				)
+			}
+		),
+		fs.cp(
 			cwd.goto(`.build/squoosh-dev/codecs/resize/pkg/squoosh_resize_bg.wasm`),
-			cwd.goto(`../dist/resize/resize.wasm`)
+			cwd.goto(`../dist/transform/resize/resize.wasm`)
 		),
 		fs.readFile(
 			cwd.goto(`.build/squoosh-dev/codecs/resize/pkg/squoosh_resize.js`),
@@ -140,37 +248,41 @@ const build = async () => {
 			(data) => {
 				const program = JS.parse(data)
 
-				buildPng(program)
-				
+				buildCodecPng(program)
+
 				return fs.writeFile(
-					cwd.goto(`../dist/resize/resize.js`),
+					cwd.goto(`../dist/transform/resize/resize.js`),
 					JS.stringify(program)
 				)
 			}
 		),
 		fs.cp(
-			cwd.goto(`templates/resize.js`),
-			cwd.goto(`../dist/resize/codec.js`)
+			cwd.goto(`templates/codec.resize.js`),
+			cwd.goto(`../dist/transform/resize/codec.js`)
 		),
 		fs.cp(
-			cwd.goto(`templates/resize-thread.js`),
-			cwd.goto(`../dist/resize/thread.js`)
+			cwd.goto(`templates/thread.resize.js`),
+			cwd.goto(`../dist/transform/resize/thread.js`)
 		),
 		fs.cp(
 			cwd.goto(`.build/squoosh-dev/codecs/rotate/rotate.wasm`),
-			cwd.goto(`../dist/rotate/rotate.wasm`)
+			cwd.goto(`../dist/transform/rotate/rotate.wasm`)
 		)
 	)
 
-	await Promise.all(copyFiles)
+	await Promise.all(awaitCodecSources)
 
-	const readFiles = []
+	// copy codec script into each codec
+	// ========================================
 
-	const template = await fs.readFile(cwd.goto('templates/all.js'), 'utf-8')
+	/** @type {Promise<void>[]} */
+	const awaitCodecScripts = []
+
+	const template = await fs.readFile(cwd.goto('templates/codec.js'), 'utf-8')
 
 	for (let codec of ['avif', 'jpg', 'jxl', 'webp', 'wp2']) {
 		for (let type of ['dec', 'enc']) {
-			readFiles.push(
+			awaitCodecScripts.push(
 				fs.readFile(
 					cwd.goto(`../dist/${codec}/${codec}-${type}.js`),
 					'utf-8'
@@ -178,16 +290,20 @@ const build = async () => {
 					code => {
 						const program = JS.parse(code)
 
-						buildAll(program)
+						buildCodec(program)
 
 						return fs.writeFile(
 							cwd.goto(`../dist/${codec}/${codec}-${type}.js`),
 							JS.stringify(program)
 						)
 					}
-				),
-				fs.writeFile(
-					cwd.goto(`../dist/${codec}/codec.js`),
+				)
+			)
+		}
+		awaitCodecScripts.push(
+			fs.writeFile(
+				cwd.goto(`../dist/${codec}/codec.js`),
+				transforms[codec](
 					template.replace(
 						/__type__/g, codec
 					).replace(
@@ -197,19 +313,35 @@ const build = async () => {
 					)
 				)
 			)
-		}
+		)
 	}
 
-	readFiles.push(
+	// copy png codec script into the png codec
+	// ========================================
+
+	awaitCodecScripts.push(
 		fs.writeFile(
 			cwd.goto(`../dist/png/codec.js`),
-			await fs.readFile(cwd.goto('templates/png.js'), 'utf-8')
+			await fs.readFile(cwd.goto('templates/codec.png.js'), 'utf-8').then(
+				data => transforms.png(
+					data.replace(
+						/__opts__/g, encodeOptions.png
+					).replace(
+						/__test__/g, detections.png.split(',').join(', ')
+					)
+				)
+			)
 		)
 	)
 
-	const actions = []
+	await Promise.all(awaitCodecScripts)
 
-	actions.push(
+	// copy source into the dist directory
+	// ========================================
+
+	const awaitSource = []
+
+	awaitSource.push(
 		fs.cp(
 			cwd.goto(`src/`),
 			cwd.goto(`../dist/`),
@@ -220,16 +352,18 @@ const build = async () => {
 		)
 	)
 
-	await Promise.all(readFiles)
-	await Promise.all(actions)
+	await Promise.all(awaitSource)
+
+	// copy blurhash into the dist directory
+	// ========================================
 
 	const blurhash = cwd.goto('../node_modules/blurhash/dist/esm/')
-	const blurdest = cwd.goto('../dist/blurhash/')
+	const blurdist = cwd.goto('../dist/transform/blurhash/')
 
 	for (const file of await fs.readdir(blurhash)) {
 		if (file.endsWith('.js') && file !== 'index.js') {
 			fs.writeFile(
-				blurdest.goto(file),
+				blurdist.goto(file),
 				await fs.readFile(
 					blurhash.goto(file),
 					'utf-8'
@@ -243,5 +377,8 @@ const build = async () => {
 	// await fs.rm(cwd.goto('.build'), { force: true, recursive: true })
 	// await fs.rm(cwd.goto('.build.zip'), { force: true, recursive: true })
 }
+
+// run setup then build
+// ========================================
 
 setup().then(build)

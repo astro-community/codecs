@@ -1,6 +1,6 @@
 # Codecs
 
-**Codecs** lets you use read, write, and edit different image formats.
+**Codecs** lets you use read, write, edit, and analyze images.
 
 ```shell
 npm install @astropub/codecs
@@ -14,24 +14,38 @@ npm install @astropub/codecs
 import * as fs from 'node:fs/promises'
 import * as codecs from '@astropub/codecs'
 
-// decode the JPG image
-const image = await codecs.jpg.decode(
-  await fs.readFile('./kitten.jpg')
+// load the JPG image
+const image = await codecs.load(
+	await fs.readFile('./kitten.jpg')
 )
 
-image.data // Uint8ClampedArray of the decoded JPG
-image.width // Width of the decoded JPG
-image.height // Height of the decoded JPG
+image.type   // string representing the image type ('image/jpeg')
+image.data   // Uint8Array representing the image data
+image.width  // number representing the image width
+image.height // number representing the image height
+image.ext    // string representing the image extension ('jpg')
+
+const decoded = await image.decode()
+
+decoded.data   // Uint8ClampedArray representing the decoded image data
+decoded.width  // number representing the decoded image width
+decoded.height // number representing the decoded image height
 
 // encode the image as Avif & WebP, at 320, 640, & 960
 for (const size of [ 320, 640, 960 ]) {
-  const resized = await codecs.resize(image, { width: size })
+	const resized = await decoded.resize({ width: size })
 
-  for (const type of [ 'avif', 'webp' ]) {
-    const encoded = await codecs[type].encode(resized, { quality: 80 })
+	for (const type of [ 'image/avif', 'image/webp' ]) {
+		const encoded = await resized.encode(type, { quality: 80 })
 
-    await fs.writeFile(`./kitten-${size}.${type}`, encoded)
-  }
+		encoded.type   // string representing the encoded image type ('image/webp')
+		encoded.data   // Uint8Array representing the encoded image data
+		encoded.width  // number representing the encoded image width (320 | 640 | 960)
+		encoded.height // number representing the encoded image height
+		encoded.ext    // string representing the encoded image extension ('webp')
+
+		await fs.writeFile(`./kitten-${size}.${encoded.ext}`, encoded.data)
+	}
 }
 ```
 
@@ -41,116 +55,266 @@ for (const size of [ 320, 640, 960 ]) {
 
 
 
-### `decode`
+### `load`
 
-Decodes the given image file to a raw image format.
+The `load` function returns a loaded image. It accepts a string path, file URL, Buffer, Response, or TypedArray.
 
 ```js
-const imageFile = await fs.readFile('./kitten.jpg')
+const image = await codecs.load('./kitten.jpg')
 
-// { data: Uint8ClampedArray, width: number, height: number }
-const imageData = await codecs.jpg.decode(imageFile)
+image.type   // string representing the image type ('image/jpeg')
+image.data   // Uint8Array representing the image data
+image.width  // number representing the image width
+image.height // number representing the image height
+image.ext    // string representing the image extension ('jpg')
 ```
 
-Decoders are available for `avif`, `jpg`, `jxl`, `png`, `webp`, and `wp2`.
+
+
+### `decode`
+
+The `decode` function returns a decoded image. It accepts a Buffer or TypedArray.
+
+```js
+const buffer = await fs.readFile('./kitten.jpg')
+
+const decoded = await codecs.decode(buffer)
+
+decoded.data   // Uint8ClampedArray representing the decoded image data
+decoded.width  // number representing the decoded image width
+decoded.height // number representing the decoded image height
+```
+
+Individual decoders are available for `avif`, `jpg`, `jxl`, `png`, `webp`, and `wp2`.
+
+```js
+import * as codecs from '@astropub/codecs'
+
+codecs.avif.decode(await fs.readFile('./kitten.avif'))
+codecs.jpg.decode(await fs.readFile('./kitten.jpg'))
+codecs.jxl.decode(await fs.readFile('./kitten.jxl'))
+codecs.png.decode(await fs.readFile('./kitten.png'))
+codecs.webp.decode(await fs.readFile('./kitten.webp'))
+codecs.wp2.decode(await fs.readFile('./kitten.wp2'))
+```
 
 
 
 ### `encode`
 
-Encodes the given image data to an encoded image format.
+The `encode` function returns an encoded image. It accepts a decoded image.
 
 ```js
-// Uint8Array
-const encodeU8A = await codecs.webp.encode(imageData)
+const encodedImage = await codecs.encode(decoded, 'image/webp', { quality: 80 })
 
-await fs.writeFile('./kitten.webp', encodeU8A)
+encoded.type   // string representing the encoded image type ('image/webp')
+encoded.data   // Uint8Array representing the encoded image data
+encoded.width  // number representing the encoded image width (320 | 640 | 960)
+encoded.height // number representing the encoded image height
+encoded.ext    // string representing the encoded image extension ('webp')
+
+await fs.writeFile('./kitten.webp', encodedImage)
 ```
 
-Encoders are available for `avif`, `jpg`, `jxl`, `png`, `webp`, and `wp2`.
+Individual encoders are available for `avif`, `jpg`, `jxl`, `png`, `webp`, and `wp2`.
+
+```js
+import * as codecs from '@astropub/codecs'
+
+codecs.avif.encode(decoded)
+codecs.jpg.encode(decoded)
+codecs.jxl.encode(decoded)
+codecs.png.encode(decoded)
+codecs.webp.encode(decoded)
+codecs.wp2.encode(decoded)
+```
 
 
 
 ### `resize`
 
-Resizes the given image data and returns new image data.
+The `resize` function returns a resized image. It accepts a decoded image.
 
 ```js
-// { data: Uint8ClampedArray, width: number, height: number }
-const sizedData = await codecs.resize(imageData, { width: 320 })
+const resized = await codecs.resize(decoded, { width: 320 })
+
+resized.data   // Uint8ClampedArray representing the resized image data
+resized.width  // number representing the resized image width
+resized.height // number representing the resized image height
 ```
 
-If not specified, the `height` will be determined from the image width using the formula `Math.round(width / imageData.width * imageData.height)`.
+If not specified, the resized `height` will be determined from the `width` using the formula `width / naturalWidth * naturalHeight`.
 
 
 
 ### `blur`
 
-Blurs an image and returns new image data.
+The `blur` function returns a blurred image. It accepts a decoded image.
 
 ```js
-// { data: Uint8ClampedArray, width: number, height: number }
-const blurImageData = await codecs.blur(imageData, { radius: 30 })
+const blurred = await codecs.blur(decoded, { radius: 30 })
 ```
 
 
 
 ### `blurhash`
 
-Encodes or decodes image data using the [Wolt BlurHash algorithm](https://github.com/woltapp/blurhash/blob/master/Algorithm.md).
+The `blurhash` function returns a blurhashed image, using the [Wolt BlurHash algorithm](https://github.com/woltapp/blurhash/blob/master/Algorithm.md). It accepts a decoded image.
 
 ```js
-// { data: string, width: number, height: number }
-const blurhash = await codecs.blurhash.encode(imageData)
-
-// { data: Uint8ClampedArray, width: number, height: number }
-const blurhashImageData = await codecs.blurhash.decode(blurhash, { width: 32 })
+const blurhashed = await decoded.blurhash({ width: 32 })
 ```
 
-If not specified, the `height` will be determined from the image width using the formula `Math.round(width / imageData.width * imageData.height)`.
+If not specified, the `height` will be determined from the image width using the formula `width / naturalWidth * naturalHeight`.
 
 
 
-### `getType`
+### `type`
 
-Returns the content type of an image file.
+The `type` function returns the content type for an image buffer. It accepts a Buffer or TypedArray.
 
 ```js
-// "image/jpeg"
-const imageType = await codecs.getType(imageFile)
+// 'image/jpeg'
+const type = await codecs.type(buffer)
 ```
 
 
 
-### `getExtension`
+### `ext`
 
-Returns the extension of an image file.
+The `ext` function returns the file extension for an image buffer. It accepts a Buffer or TypedArray.
 
 ```js
-// "jpg"
-const imageExtension = await codecs.getExtension(imageFile)
+// 'jpg'
+const ext = await codecs.ext(buffer)
+```
+
+
+
+### `DecodedImage`
+
+The `DecodedImage` class represents raw, decoded image data.
+
+```js
+const decoded = new DecodedImage(
+	data   // Uint8ClampedArray
+	width  // number
+	height // number
+)
+```
+
+
+
+### `DecodedImage#encode`
+
+The `encode` function of `DecodedImage` returns a promised encoded image from the current decoded image.
+
+```js
+const encoded = await decoded.encoded('image/webp')
+```
+
+
+
+### `DecodedImage#blur`
+
+The `blur` function of `DecodedImage` returns a promised blurred image from the current decoded image.
+```js
+const blurred = await decoded.blur({ radius: 30 })
+```
+
+
+
+### `DecodedImage#blurhash`
+
+The `blurhash` function of `DecodedImage` returns a promised blurhashed image from the current decoded image.
+```js
+const blurhash = await decoded.blurhash({ radius: 30 })
+```
+
+
+
+### `DecodedImage#resize`
+
+The `resize` function of `DecodedImage` returns a promised resized image from the current decoded image.
+```js
+const resized = await decoded.resize({ width: 320 })
+```
+
+
+
+### `EncodedImage`
+
+The `EncodedImage` class represents analyzed, encoded image data.
+
+```js
+const encoded = new EncodedImage(
+	type   // string ('image/avif' | 'image/gif' | 'image/jpeg' | 'image/jxl' | 'image/png' | 'image/svg+xml' | 'image/webp' | 'image/webp2')
+	data   // Uint8Array
+	width  // number
+	height // number
+)
+```
+
+
+
+### `EncodedImage#decode`
+
+The `decode` function of `EncodedImage` returns a promised decoded image from the current encoded image.
+
+```js
+const decoded = await encoded.decoded()
+```
+
+
+
+## Types
+
+
+
+### `ImageType`
+
+The `ImageType` type represents known image content types.
+
+```js
+import type { ImageType } from '@astropub/codecs'
+
+// 'image/avif' | 'image/gif' | 'image/jpeg' | 'image/jxl' | 'image/png' | 'image/svg+xml' | 'image/webp' | 'image/webp2'
+ImageType
+```
+
+
+
+### `ImageType`
+
+The `ImageType` type represents known image content types.
+
+```js
+import type { ImageType } from '@astropub/codecs'
+
+// 'image/avif' | 'image/gif' | 'image/jpeg' | 'image/jxl' | 'image/png' | 'image/svg+xml' | 'image/webp' | 'image/webp2'
+ImageType
 ```
 
 
 
 ## License
 
-**Codecs** is a remix of [Squoosh!](https://github.com/GoogleChromeLabs/squoosh). 
+**Codecs** is generally a remix of [Squoosh!](https://github.com/GoogleChromeLabs/squoosh). 
 
 Code original to this project is licensed under the CC0-1.0 License.
 
-Code from [Squoosh!](https://github.com/GoogleChromeLabs/squoosh) is licensed under the Apache-2.0 License, Copyright Google Inc.
+Code from [Squoosh!](https://github.com/GoogleChromeLabs/squoosh) is licensed under the Apache-2.0 License, copyright Google Inc.
 
-Code from [Avif Encoder](https://github.com/AOMediaCodec/libavif) is licensed under the BSD License (BSD), Copyright Joe Drago.
+Code from [Avif Encoder](https://github.com/AOMediaCodec/libavif) is licensed under the BSD License, copyright Joe Drago.
 
-Code from [MozJPEG](https://github.com/GoogleChromeLabs/squoosh/blob/12889d9d503a325e78823a8ebc48b54d4c2b9124/codecs/mozjpeg/LICENSE.codec.md) is licensed under the Modified (3-clause) BSD License (BSD), Copyright Viktor Szathmáry.
+Code from [MozJPEG](https://github.com/GoogleChromeLabs/squoosh/blob/12889d9d503a325e78823a8ebc48b54d4c2b9124/codecs/mozjpeg/LICENSE.codec.md) is licensed under the Modified (3-clause) BSD License, copyright Viktor Szathmáry.
 
-Code from [JXL](https://github.com/GoogleChromeLabs/squoosh/tree/023304803f988ae39b98f95a369bed4f6f000953/codecs/jxl) is licensed under the Apache-2.0 License, Copyright Google Inc.
+Code from [JXL](https://github.com/GoogleChromeLabs/squoosh/tree/023304803f988ae39b98f95a369bed4f6f000953/codecs/jxl) is licensed under the Apache-2.0 License, copyright Google Inc.
 
-Code from [OxiPNG](https://github.com/shssoichiro/oxipng) is licensed under the MIT License (MIT), Copyright Joshua Holmer.
+Code from [OxiPNG](https://github.com/shssoichiro/oxipng) is licensed under the MIT License, copyright Joshua Holmer.
 
-Code from [WebP](https://github.com/webmproject/libwebp) is licensed under the Modified (3-clause) BSD License (BSD), Copyright Google Inc.
+Code from [WebP](https://github.com/webmproject/libwebp) is licensed under the Modified (3-clause) BSD License, copyright Google Inc.
 
-Code from [WebP2](https://github.com/GoogleChromeLabs/squoosh/tree/89105bbb22e6247e568af97250477268d7284d11/codecs/wp2) is licensed under the Apache-2.0 License, Copyright Google Inc.
+Code from [WebP2](https://github.com/GoogleChromeLabs/squoosh/tree/89105bbb22e6247e568af97250477268d7284d11/codecs/wp2) is licensed under the Apache-2.0 License, copyright Google Inc.
 
-Code from [blurhash](https://github.com/woltapp/blurhash) is licensed under the MIT License, Copyright Olli Mahlamäki.
+Code from [blurhash](https://github.com/woltapp/blurhash) is licensed under the MIT License, copyright Olli Mahlamäki.

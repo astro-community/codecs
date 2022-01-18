@@ -46,4 +46,23 @@ export const build = (program) => {
 			)
 		}
 	})
+
+	program.find('FunctionDeclaration', (node) => {
+		// remove load function
+		if (node.id?.name === 'load') {
+			node.remove()
+		} else if (node.id?.name === 'init') {
+			node.params[0].name = 'module'
+		}
+	})
+
+	// replace webassembly await
+	program.find('AwaitExpression', (node) => {
+		if (node.argument.callee?.name === 'load') {
+			const declaration = node.parentNode.parentNode
+			const replacement = JS.parse('const { instance } = await WebAssembly.instantiate(module, imports)').body[0]
+
+			declaration.replaceWith(replacement)
+		}
+	})
 }

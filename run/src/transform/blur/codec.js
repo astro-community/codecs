@@ -1,3 +1,5 @@
+import { DecodedImage } from '../utils.js'
+
 function blurX(data, width, height, blurRange, guassParam) {
 	const newdata = new Uint8ClampedArray(data)
 
@@ -74,7 +76,7 @@ function blur(image, options) {
 	const dataToXY = switchXY(blur1of2, width, height, false)
 	const blur2of2 = blurX(dataToXY, width, height, blurRange, guassParam)
 
-	return { data: blur2of2, width, height }
+	return new DecodedImage(blur2of2, width, height)
 }
 
 export { blur }

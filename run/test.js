@@ -3,22 +3,35 @@
 import * as fs from 'node:fs/promises'
 import * as codecs from '../dist/codecs.js'
 
-for (const file of await fs.readdir('test/', { withFileTypes: true })) {
-	if (file.name.includes('-')) {
-		await fs.rm(`test/${file.name}`)
+for (const file of await fs.readdir('test/')) {
+	if (file.includes('-')) {
+		await fs.rm(`test/${file}`)
 	}
 }
 
-/** @type {['avif', 'jpg', 'jxl', 'png', 'webp', 'wp2']} */
-const types = ['avif', 'jpg', 'jxl', 'png', 'webp', 'wp2']
+/** @type {Exclude<codecs.ImageType, 'image/gif' | 'image/svg+xml'>[]} */
+const types = ['image/avif', 'image/jpeg', 'image/jxl', 'image/png', 'image/webp', 'image/webp2']
+
+/** @type {Omit<codecs.ExtensionMap, 'image/gif' | 'image/svg+xml'>} */
+const extensionMap = {
+	'image/avif': 'avif',
+	'image/jpeg': 'jpg',
+	'image/jxl': 'jxl',
+	'image/png': 'png',
+	'image/webp': 'webp',
+	'image/webp2': 'wp2',
+}
 
 console.log('Get the image type')
 
 for (const type of types) {
-	const imageFile = await fs.readFile(`test/test.${type}`)
+	const ext = extensionMap[type]
 
-	void codecs.getType(imageFile)
-	void codecs.getExtension(imageFile)
+	const imageFile = await fs.readFile(`test/test.${ext}`)
+
+	if (codecs.ext(imageFile) !== ext) {
+		throw new Error(`Unmatched extension checking ${type}.`)
+	}
 }
 
 /** @type {[320, 640, 960]} */
@@ -28,18 +41,22 @@ const sizes = [320, 640, 960]
 const awaits = []
 
 for (const type of types) {
-	console.log(`Decode the ${type.toUpperCase()}`)
+	const ext = extensionMap[type]
 
-	const image = await codecs[type].decode(
-		await fs.readFile(`test/test.${type}`)
+	console.log(`Decode the ${ext.toUpperCase()}`)
+
+	const image = await codecs.decode(
+		await fs.readFile(`test/test.${ext}`)
 	)
 
-	for (const dest of types) {
-		console.log(` encode ${dest.toUpperCase()} from ${type.toUpperCase()}`)
+	for (const destType of types) {
+		const dest = extensionMap[destType]
+
+		console.log(` encode ${dest.toUpperCase()} from ${ext.toUpperCase()}`)
 
 		awaits.push(
-			codecs[dest].encode(image).then(
-				encoded => fs.writeFile(`test/test-from-${type}.${dest}`, encoded)
+			image.encode(destType, { quality: 100 }).then(
+				image => fs.writeFile(`test/test-from-${ext}.${dest}`, image.data)
 			)
 		)
 	}
@@ -59,11 +76,11 @@ console.log()
 	)
 
 	console.log(' create blurred image')
-	const blurredImage = await codecs.blur(image, { radius: 30 })
+	const blurredImage = await image.blur({ radius: 30 })
 
 	console.log(' write blurred image as WebP')
-	const blurredWebP = await codecs.webp.encode(blurredImage, { pass: 1, quality: 100 })
-	await fs.writeFile('test/test-blur.webp', blurredWebP)
+	const blurredWebP = await blurredImage.encode('image/webp', { quality: 100 })
+	await fs.writeFile('test/test-blur.webp', blurredWebP.data)
 }
 
 {
@@ -73,14 +90,17 @@ console.log()
 		await fs.readFile('test/test.jpg')
 	)
 
-	console.log(' create blurhashed image')
-	const blurhash = await codecs.blurhash.encode(image)
-	const blurHashedImage = await codecs.blurhash.decode(blurhash, { width: 32 })
+	console.log(' create blurhash image')
+	const blurHashedImage = await image.blurhash({ width: 32 })
 
-	console.log(' write blurrhashed image as WebP')
-	const blurwebp = await codecs.webp.encode(blurHashedImage, { pass: 6, quality: 100 })
+	console.log(' write blurhash image as WebP')
+	const blurHashedWebp = await codecs.webp.encode(blurHashedImage, { pass: 6, quality: 100 })
 
-	await fs.writeFile('test/test-blurhash.webp', blurwebp)
+	if (blurHashedImage.hash !== 'U88W{YxYEkE2_MWCkWWBTIbHxtbHXRofw^s:') {
+		throw new Error('BlurHash Image hash mismatch.')
+	}
+
+	await fs.writeFile('test/test-blurhash.webp', blurHashedWebp.data)
 }
 
 {
@@ -92,21 +112,25 @@ console.log()
 
 	for (const size of sizes) {
 		console.log(` resize to ${size}`)
-		const resized = await codecs.resize(image, { width: size })
+		const resized = await image.resize({ width: size })
 
 		for (const type of types) {
-			console.log(`  encode as ${type}`)
-			const encoded = await codecs[type].encode(resized, { quality: 80 })
+			const ext = extensionMap[type]
 
-			await fs.writeFile(`test/test-${size}.${type}`, encoded)
+			console.log(`  encode as ${ext}`)
+			const encoded = await resized.encode(type, { quality: 80 })
+
+			await fs.writeFile(`test/test-${size}.${ext}`, encoded.data)
 		}
 	}
 }
 
-for (const file of await fs.readdir('test/', { withFileTypes: true })) {
-	if (file.name.includes('-')) {
-		await fs.rm(`test/${file.name}`)
+for (const file of await fs.readdir('test/')) {
+	if (file.includes('-')) {
+		await fs.rm(`test/${file}`)
 	}
 }
 
 console.log('Done')
+
+process.exit(0)

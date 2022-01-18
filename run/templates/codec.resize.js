@@ -1,12 +1,13 @@
+import { DecodedImage } from '../utils.js'
 import { readFile } from 'node:fs/promises'
+import * as codec from './resize.js'
 
-const asm = Object.create(null)
-const esm = Object.create(null)
+const asmPath = new URL('./resize.wasm', import.meta.url)
+const asmData = await readFile(asmPath)
 
-export const resize = async (image, options) => {
-	asm.common = asm.common || await readFile(new URL('./resize.wasm', import.meta.url))
-	esm.common = esm.common || await import(new URL('./resize.js', import.meta.url)).then(exports => exports.default(asm.common).then(() => exports))
+await codec.default(asmData)
 
+export const resize = (image, options) => {
 	let {
 		naturalWidth,
 		naturalHeight,
@@ -24,15 +25,16 @@ export const resize = async (image, options) => {
 
 	const resizeMethodIndex = resizeMethods.indexOf(resizeMethod)
 
-	const data = esm.common.resize(image.data, naturalWidth, naturalHeight, width, height, resizeMethodIndex, premultiply, linearRGB)
+	const data = codec.resize(image.data, naturalWidth, naturalHeight, width, height, resizeMethodIndex, premultiply, linearRGB)
 
-	return { data, width, height }
+	return new DecodedImage(data, width, height)
 }
 
 const resizeMethods = [ 'triangle', 'catrom', 'mitchell', 'lanczos3' ]
 
 export const resizeOptions = {
+	linearRGB: true,
 	method: 'hqx',
-	resizeMethod: 'catrom',
 	premultiply: true,
+	resizeMethod: 'catrom',
 }

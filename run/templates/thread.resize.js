@@ -1,11 +1,15 @@
 import * as thread from 'node:worker_threads'
-import * as codec from './codec.js'
+import { DecodedImage } from '../utils.js'
+import { resize as wasmResize } from './codec.js'
+
+const onfail = (code) => code === 0 || reject(new Error(`Encoding failed [ ${code} ]`))
 
 export const resize = (image, options) => new Promise((resolve, reject) => {
 	const worker = new thread.Worker(new URL(import.meta.url), { workerData: { type: 'resize', args: [ image, options ] } })
-	const onfail = (code) => code === 0 || reject(new Error(`Encoding failed [ ${code} ]`))
 
-	worker.on('message', resolve).on('error', reject).on('exit', onfail)
+	worker.on('message', image => resolve(
+		new DecodedImage(image.data, image.width, image.height)
+	)).on('error', reject).on('exit', onfail)
 })
 
 if (!thread.isMainThread) {
@@ -13,9 +17,7 @@ if (!thread.isMainThread) {
 		case 'resize': {
 			const [ image, options ] = thread.workerData.args
 
-			const resizedImage = await codec.resize(image, options)
-
-			thread.parentPort.postMessage(resizedImage)
+			thread.parentPort.postMessage(wasmResize(image, options))
 
 			break
 		}

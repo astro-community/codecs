@@ -1,38 +1,41 @@
 import * as thread from 'node:worker_threads'
-import * as codec from './codec.js'
-export { test } from './codec.js'
+import { DecodedImage, EncodedImage } from '../transform/utils.js'
+import { encode as wasmEncode, decode as wasmDecode, ext, load, rect, test, type } from './codec.js'
 
-export const decode = (uint) => new Promise((resolve, reject) => {
-	const worker = new thread.Worker(new URL(import.meta.url), { workerData: { type: 'decode', args: [ uint ] } })
-	const onfail = (code) => code === 0 || reject(new Error(`Encoding failed [ ${code} ]`))
+export { ext, load, rect, test, type }
 
-	worker.on('message', resolve).on('error', reject).on('exit', onfail)
+const onfail = (code) => code === 0 || reject(new Error(`Encoding failed [ ${code} ]`))
+
+export const decode = (data) => new Promise((resolve, reject) => {
+	const worker = new thread.Worker(new URL(import.meta.url), { workerData: { type: 'decode', args: [ data ] } })
+
+	worker.on('message', image => resolve(
+		new DecodedImage(image.data, image.width, image.height)
+	)).on('error', reject).on('exit', onfail)
 })
 
 export const encode = (image, options) => new Promise((resolve, reject) => {
 	const worker = new thread.Worker(new URL(import.meta.url), { workerData: { type: 'encode', args: [ image, options ] } })
-	const onfail = (code) => code === 0 || reject(new Error(`Encoding failed [ ${code} ]`))
 
-	worker.on('message', resolve).on('error', reject).on('exit', onfail)
+	worker.on('message', image => resolve(
+		new EncodedImage(image.type, image.data, image.width, image.height)
+	)).on('error', reject).on('exit', onfail)
 })
 
 if (!thread.isMainThread) {
 	switch (thread.workerData.type) {
 		case 'decode': {
-			const [ uint ] = thread.workerData.args
+			const [ data ] = thread.workerData.args
 
-			const { data, width, height } = await codec.decode(uint)
-
-			thread.parentPort.postMessage({ data, width, height })
+			thread.parentPort.postMessage(wasmDecode(data))
 
 			break
 		}
+
 		case 'encode': {
 			const [ image, options ] = thread.workerData.args
 
-			const buffer = await codec.encode(image, options)
-
-			thread.parentPort.postMessage(buffer)
+			thread.parentPort.postMessage(wasmEncode(image, options))
 
 			break
 		}

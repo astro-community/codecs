@@ -1,19 +1,62 @@
-export interface Image {
-	data: Uint8ClampedArray,
-	width: number
-	height: number
+// image interfaces
+// ----------------------------------------
+
+export declare class DecodedImage<
+	D extends TypedArray = TypedArray,
+	W extends number = number,
+	H extends number = number
+> {
+	constructor(data: D, width: W, height: H)
+
+	data: D
+	width: W
+	height: H
+
+	encode<T extends ImageType>(type: T, options?: Partial<EncodeOptions<T>>): Promise<EncodedImage<T, D, W, H>>
+
+	blur(options?: Partial<BlurOptions>): Promise<DecodedImage<D, W, H>>
+
+	blurhash(options?: Partial<BlurHashOptions>): Promise<BlurHashImage<string, D, W, H>>
+
+	resize<W extends number, H extends number>(options: Partial<ResizeOptions> & Partial<{ width: W, height: H }>): Promise<DecodedImage<D, W, H>>
 }
 
-export interface BlurhashImage {
-	data: string,
-	width: number
-	height: number
+export declare class BlurHashImage<
+	S extends string = string,
+	D extends TypedArray = TypedArray,
+	W extends number = number,
+	H extends number = number
+> extends DecodedImage<D, W, H> {
+	constructor(hash: S, data: D, width: W, height: H)
+
+	hash: S
 }
+
+export declare class EncodedImage<
+	T extends ImageType = ImageType,
+	D extends TypedArray = TypedArray,
+	W extends number = number,
+	H extends number = number
+> {
+	constructor(type: T, data: D, width: W, height: H)
+
+	type: T
+	data: D
+	width: W
+	height: H
+	ext: ExtensionType<T>
+
+	decode(): Promise<DecodedImage<D, W, H>>
+}
+
+// encoding options
+// ----------------------------------------
 
 export interface AvifEncodeOptions {
 	cqLevel: number
 	cqAlphaLevel: number
 	denoiseLevel: number
+	quality: number
 	tileColsLog2: number
 	tileRowsLog2: number
 	speed: number
@@ -54,7 +97,8 @@ export interface JxlEncodeOptions {
 
 export interface PngEncodeOptions {
 	interlace: boolean
-	level: number
+	level: 0 | 1 | 2 | 3
+	quality: number
 }
 
 export interface WebpEncodeOptions {
@@ -88,19 +132,34 @@ export interface WebpEncodeOptions {
 }
 
 export interface Wp2EncodeOptions {
-	quality: number
 	alpha_quality: number
-	effort: number
-	pass: number
-	sns: number
-	uv_mode: number
 	csp_type: number
+	effort: number
 	error_diffusion: number
+	pass: number
+	quality: number
+	sns: number
 	use_random_matrix: boolean
+	uv_mode: number
 }
+
+// transform options
+// ----------------------------------------
 
 export interface BlurOptions {
 	radius: number
+}
+
+export interface BlurHashOptions {
+	component: number
+	componentX: number
+	componentY: number
+	punch: number
+	naturalWidth: number
+	naturalHeight: number
+	width: number
+	height: number
+	size: number
 }
 
 export interface ResizeOptions {
@@ -113,71 +172,122 @@ export interface ResizeOptions {
 	width: number
 }
 
-export interface BlurhashDecodeOptions {
-	width: number
-	height: number
-	punch: number
-	size: number
-}
-
-export interface BlurhashEncodeOptions {
-	component: number
-	componentX: number
-	componentY: number
-}
-
 export type ResizeMethod = 'triangle' | 'catrom' | 'mitchell' | 'lanczos3'
 
-export type ImageType = 'image/avif' | 'image/gif' | 'image/jpeg' | 'image/jxl' | 'image/png' | 'image/svg+xml' | 'image/webp' | 'image/webp2'
+// utility types
+// ----------------------------------------
 
-export type ExtensionType = 'avif' | 'jpg' | 'jxl' | 'png' | 'webp' | 'wp2'
+/** Known image content types. */
+export type ImageType = keyof CodecMap & keyof EncodeOptionsMap & keyof ExtensionMap
+
+/** Known encoding options. */
+export type Codec<K extends ImageType = ImageType> = CodecMap[K]
+
+/** Known encoding options. */
+export type EncodeOptions<K extends ImageType = ImageType> = EncodeOptionsMap[K]
+
+/** Known image extensions. */
+export type ExtensionType<K extends ImageType = ImageType> = ExtensionMap[K]
+
+export interface CodecMap {
+	'image/avif': typeof avif
+	'image/gif': void
+	'image/jpeg': typeof jpg
+	'image/jxl': typeof jxl
+	'image/png': typeof png
+	'image/svg+xml': void
+	'image/webp': typeof webp
+	'image/webp2': typeof wp2
+}
+
+export interface EncodeOptionsMap {
+	'image/avif': AvifEncodeOptions
+	'image/gif': void
+	'image/jpeg': JpgEncodeOptions
+	'image/jxl': JxlEncodeOptions
+	'image/png': PngEncodeOptions
+	'image/svg+xml': void
+	'image/webp': WebpEncodeOptions
+	'image/webp2': Wp2EncodeOptions
+}
+
+export interface ExtensionMap {
+	'image/avif': 'avif'
+	'image/gif': 'gif'
+	'image/jpeg': 'jpg'
+	'image/jxl': 'jxl'
+	'image/png': 'png'
+	'image/svg+xml': 'svg'
+	'image/webp': 'webp'
+	'image/webp2': 'wp2'
+}
+
+export type CodecList = [ typeof avif, typeof jpg, typeof jxl, typeof png, typeof webp, typeof wp2 ]
+
+// declarations
+// ----------------------------------------
 
 export declare const avif: {
-	encode(image: Image, options?: Partial<AvifEncodeOptions>): Promise<Uint8Array>
-	decode(uint: Uint8Array): Promise<Image>
+	encode<T extends DecodedImage>(image: T, options?: Partial<AvifEncodeOptions>): Promise<EncodedImage<'image/avif', T['data'], T['width'], T['height']>>
+	decode(buffer: TypedArray): Promise<DecodedImage>
+	test(buffer: TypedArray): boolean
 }
 
 export declare const jpg: {
-	encode(image: Image, options?: Partial<JpgEncodeOptions>): Promise<Uint8Array>
-	decode(uint: Uint8Array): Promise<Image>
+	encode<T extends DecodedImage>(image: T, options?: Partial<JpgEncodeOptions>): Promise<EncodedImage<'image/jpeg', T['data'], T['width'], T['height']>>
+	decode(buffer: TypedArray): Promise<DecodedImage>
+	test(buffer: TypedArray): boolean
 }
 
 export declare const jxl: {
-	encode(image: Image, options?: Partial<JxlEncodeOptions>): Promise<Uint8Array>
-	decode(uint: Uint8Array): Promise<Image>
+	encode<T extends DecodedImage>(image: T, options?: Partial<JxlEncodeOptions>): Promise<EncodedImage<'image/jxl', T['data'], T['width'], T['height']>>
+	decode(buffer: TypedArray): Promise<DecodedImage>
+	test(buffer: TypedArray): boolean
 }
 
 export declare const png: {
-	encode(image: Image, options?: Partial<PngEncodeOptions>): Promise<Uint8Array>
-	decode(uint: Uint8Array): Promise<Image>
+	encode<T extends DecodedImage>(image: T, options?: Partial<PngEncodeOptions>): Promise<EncodedImage<'image/png', T['data'], T['width'], T['height']>>
+	decode(buffer: TypedArray): Promise<DecodedImage>
+	test(buffer: TypedArray): boolean
 }
 
 export declare const webp: {
-	encode(image: Image, options?: Partial<WebpEncodeOptions>): Promise<Uint8Array>
-	decode(uint: Uint8Array): Promise<Image>
+	encode<T extends DecodedImage>(image: T, options?: Partial<WebpEncodeOptions>): Promise<EncodedImage<'image/webp', T['data'], T['width'], T['height']>>
+	decode(buffer: TypedArray): Promise<DecodedImage>
+	test(buffer: TypedArray): boolean
 }
 
 export declare const wp2: {
-	encode(image: Image, options?: Partial<Wp2EncodeOptions>): Promise<Uint8Array>
-	decode(uint: Uint8Array): Promise<Image>
+	encode<T extends DecodedImage>(image: T, options?: Partial<Wp2EncodeOptions>): Promise<EncodedImage<'image/webp2', T['data'], T['width'], T['height']>>
+	decode(buffer: TypedArray): Promise<DecodedImage>
+	test(buffer: TypedArray): boolean
 }
 
-export declare const blurhash: {
-	encode(image: Image, options?: Partial<BlurhashEncodeOptions>): Promise<BlurhashImage>
-	decode(image: BlurhashImage, options?: Partial<BlurhashDecodeOptions>): Promise<Image>
-}
+/** Returns a new image that has been loaded and decoded. */
+export declare const load: (source: string | URL | Response | TypedArray) => Promise<DecodedImage>
 
-/** Returns a new image that has been blurred. */
-export declare const blur: (image: Image, options?: Partial<BlurOptions>) => Promise<Image>
+/** Returns a new image that has been decoded. */
+export declare const decode: <D extends TypedArray>(buffer: D) => Promise<DecodedImage>
 
-/** Returns a new image that has been resized. */
-export declare const resize: (image: Image, options?: Partial<ResizeOptions>) => Promise<Image>
+/** Returns a new image that has been encoded. */
+export declare const encode: <D extends DecodedImage, T extends ImageType>(image: D, type: T, options?: EncodeOptions<T>) => Promise<EncodedImage<T, D['data'], D['width'], D['height']>>
+
+/** Returns a new decoded image with a blur applied. */
+export declare const blur: <T extends DecodedImage>(image: T, options?: Partial<BlurOptions>) => Promise<DecodedImage<TypedArray, T['width'], T['height']>>
+
+/** Returns a new decoded image with a blurhash applied. */
+export declare const blurhash: <T extends DecodedImage>(image: T, options?: Partial<BlurHashOptions>) => Promise<BlurHashImage<string, T['data'], T['width'], T['height']>>
+
+/** Returns a new decoded image with a resize applied. */
+export declare const resize: (image: DecodedImage, options?: Partial<ResizeOptions>) => Promise<DecodedImage>
 
 /** Returns the extension associated with the given image. */
-export declare const getExtension: (data: Uint8Array) => ExtensionType | ''
+export declare const ext: (data: TypedArray) => ExtensionType | ''
 
 /** Returns the content type associated with the given image. */
-export declare const getType: (data: Uint8Array) => ImageType | ''
+export declare const type: (data: TypedArray) => ImageType | ''
 
 /** Returns the measurements associated with the given image. */
-export declare const getMeasurements: (data: Uint8Array) => { width: number, height: number } | null
+export declare const rect: (data: TypedArray) => { width: number, height: number } | null
+
+export type TypedArray = Uint8Array | Uint8ClampedArray | Uint16Array | Uint32Array | Int8Array | Int16Array | Int32Array | BigUint64Array | BigInt64Array | Float32Array | Float64Array
