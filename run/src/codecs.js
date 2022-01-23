@@ -116,9 +116,7 @@ const preload = (data) => {
 
 	if (typeof data.arrayBuffer === 'function') return data.arrayBuffer().then(preload)
 
-	if (typeof data.buffer === 'object') return data.buffer
-
-	return data
+	return new Uint8Array(data)
 }
 
 /** @type {typeof import('./codecs.d').load} */
