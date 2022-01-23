@@ -1,10 +1,8 @@
 // polyfills
 // ----------------------------------------
 
-import * as webapi from '@astropub/webapi'
-
 /** @type {globalThis.fetch} */
-const fetch = globalThis.fetch || webapi.fetch
+const fetch = globalThis.fetch || await import('@astropub/webapi').then(webapi => webapi.fetch, () => import('node:fs/promises').readFile)
 
 // codecs
 // ----------------------------------------
@@ -101,34 +99,30 @@ export const ext = (data) => {
 
 /** @type {{ (data: any): Promise<import('./codecs.d').TypedArray> }} */
 const preload = (data) => {
-	if (data !== Object(data)) {
-		return preload(
-			fetch(
-				new URL(
-					posix.getPath(data),
-					new URL(posix.getDir(process.env()), 'file:')
-				)
+	if (data !== Object(data)) return preload(
+		fetch(
+			new URL(
+				posix.getPath(data),
+				new URL(posix.getDir(process.env()), 'file:')
 			)
 		)
-	}
+	)
 
-	if (typeof data.then === 'function') {
-		return data.then(preload)
-	}
+	if (typeof data.then === 'function') return data.then(preload)
 
-	if (typeof data.arrayBuffer === 'function') {
-		return preload(data.arrayBuffer())
-	}
+	if (typeof data.href === 'string') return fetch(data).then(preload)
 
-	if (data.length < 1) {
-		return []
-	}
+	if (typeof data.body === 'function') return preload(data.body)
+
+	if (typeof data.arrayBuffer === 'function') return data.arrayBuffer().then(preload)
+
+	if (typeof data.buffer === 'object') return data.buffer
 
 	return data
 }
 
 /** @type {typeof import('./codecs.d').load} */
-export const load = (source) => preload(source).then(
+export const load = (source) => Promise.resolve(preload(source)).then(
 	buffer => decode(buffer)
 )
 
