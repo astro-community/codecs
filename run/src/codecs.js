@@ -1,3 +1,5 @@
+import * as process from 'node:process'
+
 // polyfills
 // ----------------------------------------
 
@@ -97,13 +99,13 @@ export const ext = (data) => {
 // load
 // ----------------------------------------
 
-/** @type {{ (data: any): Promise<import('./codecs.d').TypedArray> }} */
+/** @type {{ (data: any): Promise<Uint8Array> }} */
 const preload = (data) => {
 	if (data !== Object(data)) return preload(
 		fetch(
 			new URL(
-				posix.getPath(data),
-				new URL(posix.getDir(process.env()), 'file:')
+				getPath(data),
+				new URL(getPath(process.cwd()).replace(/\/?$/, '/'), 'file:')
 			)
 		)
 	)
@@ -121,8 +123,19 @@ const preload = (data) => {
 
 /** @type {typeof import('./codecs.d').load} */
 export const load = (source) => Promise.resolve(preload(source)).then(
-	buffer => decode(buffer)
+	uint8 => {
+		for (const codec of codecList) {
+			if (codec.test(uint8)) return new EncodedImage(
+				codec.type,
+				uint8,
+				...Object.values(codec.rect(uint8))
+			)
+		}
+	}
 )
+
+/** @type {{ (path: string): string }} */
+const getPath = (path) => path.replace(/\\+/g, '/').replace(/^(?=[A-Za-z]:\/)/, '/').replace(/%/g, '%25').replace(/\n/g, '%0A').replace(/\r/g, '%0D').replace(/\t/g, '%09')
 
 // type
 // ----------------------------------------

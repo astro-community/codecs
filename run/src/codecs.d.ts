@@ -264,7 +264,7 @@ export declare const wp2: {
 }
 
 /** Returns a new image that has been loaded and decoded. */
-export declare const load: (source: string | URL | Response | TypedArray) => Promise<DecodedImage>
+export declare const load: (source: string | URL | Response | TypedArray) => Promise<EncodedImage>
 
 /** Returns a new image that has been decoded. */
 export declare const decode: <D extends TypedArray>(buffer: D) => Promise<DecodedImage>
@@ -290,4 +290,4 @@ export declare const type: (data: TypedArray) => ImageType | ''
 /** Returns the measurements associated with the given image. */
 export declare const rect: (data: TypedArray) => { width: number, height: number } | null
 
-export type TypedArray = Uint8Array | Uint8ClampedArray | Uint16Array | Uint32Array | Int8Array | Int16Array | Int32Array | BigUint64Array | BigInt64Array | Float32Array | Float64Array
+export type TypedArray = Uint8Array | Uint8ClampedArray | Uint16Array | Uint32Array | Int8Array | Int16Array | Int32Array | BigUint64Array | BigInt64Array | Float32Array | Float64Array | ArrayBuffer
