@@ -210,7 +210,7 @@ const decoded = new DecodedImage(
 The `encode` function of `DecodedImage` returns a promised encoded image from the current decoded image.
 
 ```js
-const encoded = await decoded.encoded('image/webp')
+const encoded = await decoded.encoded('image/webp') // EncodedImage<'image/web', Uint8Array>
 ```
 
 
@@ -219,7 +219,7 @@ const encoded = await decoded.encoded('image/webp')
 
 The `blur` function of `DecodedImage` returns a promised blurred image from the current decoded image.
 ```js
-const blurred = await decoded.blur({ radius: 30 })
+const blurred = await decoded.blur({ radius: 30 }) // DecodedImage
 ```
 
 
@@ -228,7 +228,7 @@ const blurred = await decoded.blur({ radius: 30 })
 
 The `blurhash` function of `DecodedImage` returns a promised blurhashed image from the current decoded image.
 ```js
-const blurhash = await decoded.blurhash({ radius: 30 })
+const blurhash = await decoded.blurhash({ radius: 30 }) // DecodedImage
 ```
 
 
@@ -237,7 +237,17 @@ const blurhash = await decoded.blurhash({ radius: 30 })
 
 The `resize` function of `DecodedImage` returns a promised resized image from the current decoded image.
 ```js
-const resized = await decoded.resize({ width: 320 })
+const resized = await decoded.resize({ width: 320 }) // DecodedImage
+```
+
+
+
+### `DecodedImage#color`
+
+The `color` property of `DecodedImage` returns the dominant color in the decoded image.
+
+```js
+decoded.color // [ 57, 52, 43 ]
 ```
 
 

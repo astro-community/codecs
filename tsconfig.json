@@ -1,9 +1,14 @@
 {
   "files": [
-    "run/test.js"
-  ],
-  "include": [
-    "run/test.js"
+    "run/test.js",
+    "run/test.all.js",
+    "run/test.blur.js",
+    "run/test.blurhash.js",
+    "run/test.codecs.js",
+    "run/test.color.js",
+    "run/test.extensions.js",
+    "run/test.resize.js",
+    "run/test.style.js"
   ],
   "compilerOptions": {
     "allowJs": true,

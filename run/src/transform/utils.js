@@ -85,12 +85,43 @@ export const getWebpSize = (data) => {
 // DecodedImage
 // ----------------------------------------
 
+const colormemo = new WeakMap
+
 export class DecodedImage {
 	/** @arg {Uint8ClampedArray} data @arg {number} width @arg {number} height */
 	constructor(data, width, height) {
 		this.data = data
 		this.width = width
 		this.height = height
+	}
+
+	get color() {
+		if (colormemo.has(this)) return colormemo.get(this)
+
+		const data = this.data
+		const size = data.length
+		const color = [ 0, 0, 0 ]
+
+		for (let i = 0; i < size; i += 4) {
+			color[0] += data[i + 0]
+			color[1] += data[i + 1]
+			color[2] += data[i + 2]
+		}
+
+		const rgb = [ ~~(color[0] * 4 / size), ~~(color[1] * 4 / size), ~~(color[2] * 4 / size) ]
+
+		colormemo.set(this, rgb)
+
+		return rgb
+	}
+
+	get style() {
+		return {
+			aspectRatio: `${this.width} / ${this.height}`,
+			backgroundColor: `rgb(${this.color.join(' ')})`,
+			height: `${this.height}px`,
+			width: `${this.width}px`,
+		}
 	}
 }
 

@@ -2,7 +2,7 @@
 // ----------------------------------------
 
 export declare class DecodedImage<
-	D extends TypedArray = TypedArray,
+	D extends Uint8ClampedArray = Uint8ClampedArray,
 	W extends number = number,
 	H extends number = number
 > {
@@ -11,6 +11,10 @@ export declare class DecodedImage<
 	data: D
 	width: W
 	height: H
+
+	readonly color: [number, number, number]
+
+	readonly style: { aspectRatio: string, backgroundColor: string, height: string, width: string }
 
 	encode<T extends ImageType>(type: T, options?: Partial<EncodeOptions<T>>): Promise<EncodedImage<T, D, W, H>>
 
@@ -23,7 +27,7 @@ export declare class DecodedImage<
 
 export declare class BlurHashImage<
 	S extends string = string,
-	D extends TypedArray = TypedArray,
+	D extends Uint8Array = Uint8Array,
 	W extends number = number,
 	H extends number = number
 > extends DecodedImage<D, W, H> {
@@ -34,7 +38,7 @@ export declare class BlurHashImage<
 
 export declare class EncodedImage<
 	T extends ImageType = ImageType,
-	D extends TypedArray = TypedArray,
+	D extends Uint8Array = Uint8Array,
 	W extends number = number,
 	H extends number = number
 > {
@@ -46,7 +50,7 @@ export declare class EncodedImage<
 	height: H
 	ext: ExtensionType<T>
 
-	decode(): Promise<DecodedImage<D, W, H>>
+	decode(): Promise<DecodedImage<Uint8ClampedArray, W, H>>
 }
 
 // encoding options
@@ -264,7 +268,7 @@ export declare const wp2: {
 }
 
 /** Returns a new image that has been loaded and decoded. */
-export declare const load: (source: string | URL | Response | TypedArray) => Promise<EncodedImage>
+export declare const load: (source: string | URL | Response | TypedArray | Promise<string | URL | Response | TypedArray>) => Promise<EncodedImage>
 
 /** Returns a new image that has been decoded. */
 export declare const decode: <D extends TypedArray>(buffer: D) => Promise<DecodedImage>
@@ -273,7 +277,7 @@ export declare const decode: <D extends TypedArray>(buffer: D) => Promise<Decode
 export declare const encode: <D extends DecodedImage, T extends ImageType>(image: D, type: T, options?: EncodeOptions<T>) => Promise<EncodedImage<T, D['data'], D['width'], D['height']>>
 
 /** Returns a new decoded image with a blur applied. */
-export declare const blur: <T extends DecodedImage>(image: T, options?: Partial<BlurOptions>) => Promise<DecodedImage<TypedArray, T['width'], T['height']>>
+export declare const blur: <T extends DecodedImage>(image: T, options?: Partial<BlurOptions>) => Promise<DecodedImage<Uint8Array, T['width'], T['height']>>
 
 /** Returns a new decoded image with a blurhash applied. */
 export declare const blurhash: <T extends DecodedImage>(image: T, options?: Partial<BlurHashOptions>) => Promise<BlurHashImage<string, T['data'], T['width'], T['height']>>
